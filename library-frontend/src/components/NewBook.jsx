@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { useMutation } from '@apollo/client'
+import { ALL_AUTHORS, ALL_BOOKS } from '../graphql/queries';
+import { CREATE_BOOK } from '../graphql/mutations';
 
 const NewBook = (props) => {
   const [title, setTitle] = useState('')
@@ -7,6 +10,13 @@ const NewBook = (props) => {
   const [genre, setGenre] = useState('')
   const [genres, setGenres] = useState([])
 
+  const [ createBook ] = useMutation(CREATE_BOOK, {
+    refetchQueries: [
+      { query: ALL_AUTHORS },
+      { query: ALL_BOOKS }
+    ]
+  });
+
   if (!props.show) {
     return null
   }
@@ -14,7 +24,15 @@ const NewBook = (props) => {
   const submit = async (event) => {
     event.preventDefault()
 
-    console.log('add book...')
+    // NOTE: This will currently add new books even if it contains empty fields
+    createBook({
+      variables: {
+        title,
+        published: Math.round(published),
+        author,
+        genres
+      }
+    })
 
     setTitle('')
     setPublished('')
