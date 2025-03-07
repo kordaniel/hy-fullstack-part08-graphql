@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation } from '@apollo/client';
+import { useMutation, useQuery } from '@apollo/client';
 import { UPDATE_AUTHOR } from '../graphql/mutations';
 import { ALL_AUTHORS } from '../graphql/queries';
 
@@ -7,6 +7,7 @@ const EditAuthor = (props) => {
   const [name, setName] = useState('');
   const [birthyear, setBirthyear] = useState('');
 
+  const allAuthors = useQuery(ALL_AUTHORS);
   const [updateAuthor] = useMutation(UPDATE_AUTHOR, {
     refetchQueries: [
       { query: ALL_AUTHORS }
@@ -15,7 +16,13 @@ const EditAuthor = (props) => {
 
   if (!props.show) {
     return null;
+  } else if (allAuthors.loading) {
+    return <div>Loading authors...</div>;
   }
+
+  const authors = allAuthors.called && !allAuthors.error
+    ? allAuthors.data.allAuthors
+    : [];
 
   const submit = async (event) => {
     event.preventDefault();
@@ -41,19 +48,22 @@ const EditAuthor = (props) => {
       <form onSubmit={submit}>
         <div>
           name
-          <input
-            value={name}
-            onChange={({ target }) => setName(target.value)}
-          />
+          <select value={name} onChange={({ target }) => setName(target.value)}>
+            <option value=''>Select author from dropdown..</option>
+            {authors.map(a => (
+              <option key={a.id} value={a.name}>{a.name}</option>
+            ))}
+          </select>
         </div>
         <div>
           born
           <input
+            type="number"
             value={birthyear}
             onChange={({ target }) => setBirthyear(target.value)}
           />
         </div>
-        <button type="submit">update author</button>
+        <button disabled={!name} type="submit">update author</button>
       </form>
     </div>
   );
