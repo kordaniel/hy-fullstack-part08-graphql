@@ -6,8 +6,11 @@ mongoose.set('strictQuery', false);
 const { ApolloServer } = require('@apollo/server');
 const { startStandaloneServer } = require('@apollo/server/standalone');
 const { GraphQLError } = require('graphql');
+const jwt = require('jsonwebtoken');
+
 const Author = require('./models/author');
 const Book = require('./models/book');
+const User = require('./models/user');
 
 
 console.log('Connecting to MongDB:', config.MONGOOSE_URI);
@@ -35,6 +38,16 @@ const typeDefs = `
     genres: [String!]!
   }
 
+  type User {
+    username: String!
+    favoriteGenre: String!
+    id: ID!
+  }
+
+  type Token {
+    value: String!
+  }
+
   type Mutation {
     addBook(
       title: String!
@@ -42,10 +55,18 @@ const typeDefs = `
       author: String!
       genres: [String!]!
     ): Book
+    createUser(
+      username: String!
+      favoriteGenre: String!
+    ): User
     editAuthor(
       name: String!
       setBornTo: Int!
     ): Author
+    login(
+      username: String!
+      password: String!
+    ): Token
   }
 
   type Query {
@@ -53,12 +74,21 @@ const typeDefs = `
     authorCount: Int!
     allAuthors: [Author!]!
     allBooks(author: String, genre: String): [Book!]!
+    me: User
   }
 `;
 
 const resolvers = {
   Mutation: {
-    addBook: async (_root, args) => {
+    addBook: async (_root, args, { currentUser }) => {
+      if (!currentUser) {
+        throw new GraphQLError('not authenticated', {
+          extensions: {
+            code: 'BAD_USER_INPUT'
+          }
+        });
+      }
+
       const authorInDb = await Author.findOne({ name: args.author });
       let author;
 
@@ -96,7 +126,31 @@ const resolvers = {
 
       return book;
     },
-    editAuthor: async (_root, args) => {
+    createUser: async (_root, args) => {
+      const user = new User({
+        username: args.username,
+        favoriteGenre: args.favoriteGenre
+      });
+
+      return user.save().catch(error => {
+        throw new GraphQLError('Creating new user failed', {
+          extensions: {
+            code: 'BAD_USER_INPUT',
+            invalidArgs: args,
+            error
+          }
+        });
+      });
+    },
+    editAuthor: async (_root, args, { currentUser }) => {
+      if (!currentUser) {
+        throw new GraphQLError('not authenticated', {
+          extensions: {
+            code: 'BAD_USER_INPUT'
+          }
+        });
+      }
+
       const author = await Author.findOne({ name: args.name });
       if (!author) {
         return null;
@@ -114,6 +168,24 @@ const resolvers = {
         });
       }
       return author;
+    },
+    login: async (_root, args) => {
+      const user = await User.findOne({ username: args.username });
+
+      if (!user || args.password !== 'secret') {
+        throw new GraphQLError('wrong credentials', {
+          extensions: {
+            code: 'BAD_USER_INPUT'
+          }
+        });
+      }
+
+      const userForToken = {
+        username: user.username,
+        id: user._id
+      };
+
+      return { value: jwt.sign(userForToken, config.JWT_SECRET) };
     }
   },
   Query: {
@@ -136,6 +208,16 @@ const resolvers = {
 
       return Book.find(opts);
     },
+    me: (_root, _args, context) => {
+      if (!context.currentUser) {
+        throw new GraphQLError('not authenticated', {
+          extensions: {
+            code: 'BAD_USER_INPUT'
+          }
+        });
+      }
+      return context.currentUser;
+    },
   },
   Author: {
     bookCount: async (root) => await Book.find({ author: root._id }).countDocuments(),
@@ -152,6 +234,14 @@ const server = new ApolloServer({
 
 startStandaloneServer(server, {
   listen: { port: config.PORT },
+  context: async ({ req }) => {
+    const auth = req ? req.headers.authorization : null;
+    if (auth && auth.startsWith('Bearer ')) {
+      const decodedToken = jwt.verify(auth.substring(7), config.JWT_SECRET);
+      const currentUser = await User.findById(decodedToken.id);
+      return { currentUser };
+    }
+  },
 }).then(({ url }) => {
   console.log(`Server ready at ${url}`);
 });
