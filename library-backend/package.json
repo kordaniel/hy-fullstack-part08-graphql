@@ -13,7 +13,10 @@
   "license": "ISC",
   "dependencies": {
     "@apollo/server": "^4.11.3",
-    "graphql": "^16.10.0"
+    "@ladjs/mongoose-unique-validator": "^5.0.0",
+    "dotenv": "^16.4.7",
+    "graphql": "^16.10.0",
+    "mongoose": "^8.12.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
