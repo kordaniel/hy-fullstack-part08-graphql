@@ -1,17 +1,27 @@
 import { useState } from "react";
+import { useApolloClient, useSubscription } from "@apollo/client";
+
 import Authors from "./components/Authors";
 import Books from "./components/Books";
 import NewBook from "./components/NewBook";
 import EditAuthor from "./components/EditAuthor";
 import LoginForm from "./components/LoginForm";
 import Recommendations from "./components/Recommendations";
-import { useApolloClient } from "@apollo/client";
+
+import { BOOK_ADDED } from "./graphql/queries";
 
 const App = () => {
   const [token, setToken] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [page, setPage] = useState("authors");
   const client = useApolloClient();
+
+  useSubscription(BOOK_ADDED, {
+    onData: ({ data }) => {
+      console.log('new book:', data);
+      window.alert('New book');
+    }
+  });
 
   const logout = () => {
     setToken(null);
