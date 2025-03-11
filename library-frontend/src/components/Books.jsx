@@ -5,7 +5,7 @@ import { ALL_BOOKS, ALL_BOOKS_WITH_GENRES, ALL_GENRES } from '../graphql/queries
 const GenreSelection = ({ allGenres, showGenres, setShowGenres }) => {
   const handleChange = (event) => {
     if (event.target.checked) {
-      setShowGenres([...showGenres, event.target.id]);
+      setShowGenres([...showGenres, event.target.id].sort());
     } else {
       setShowGenres(showGenres.filter(g => g !== event.target.id));
     }
@@ -28,7 +28,8 @@ const GenreSelection = ({ allGenres, showGenres, setShowGenres }) => {
 
 const ListBooks = ({ books, showGenres }) => {
   const booksWithGenre = useQuery(ALL_BOOKS_WITH_GENRES, {
-    variables: { genres: showGenres }
+    variables: { genres: showGenres },
+    fetchPolicy: 'network-only' // Dont cache queries to ensure all parameterized queries are up-to-date with server state
   });
 
   const booksToShow = !booksWithGenre.loading &&
