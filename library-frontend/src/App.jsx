@@ -26,7 +26,8 @@ const App = () => {
     borderStyle: 'solid',
     borderRadius: '5',
     padding: 10,
-    margin: 10
+    marginTop: 10,
+    marginBottom: 10
   };
 
   return (

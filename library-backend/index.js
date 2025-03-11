@@ -74,6 +74,7 @@ const typeDefs = `
     authorCount: Int!
     allAuthors: [Author!]!
     allBooks(author: String, genre: String): [Book!]!
+    allGenres: [String!]!
     me: User
   }
 `;
@@ -207,6 +208,25 @@ const resolvers = {
       }
 
       return Book.find(opts);
+    },
+    allGenres: async () => {
+      // NOTE: This returns the genres in ascending order so it contains more logic than
+      //       the exercise required.
+      // https://mongoosejs.com/docs/api/aggregate.html
+
+      const aggregatedGenres = await Book.aggregate([
+        { $unwind: '$genres' }, // extracts a new document for every genre in every book documents genres
+        //                         array, where each new document holds all the fields of the original book
+        //                         document, but with the genres array mapped to the extracted genre string
+        { $group: { _id: null, genres: { $addToSet: '$genres' } } }, // collect all the different
+        // genres into one document with the field 'genres' holding an array of all unique genres
+        // without duplicates
+        { $project: { _id: 0, genres: 1 } }, // drop _id field, keep genres
+        { $unwind: '$genres' }, // extract a document for every genre
+        { $sort: { genres: 1 } } // sort the documents, 1 = ascending
+      ]);
+
+      return aggregatedGenres.map(g => g.genres);
     },
     me: (_root, _args, context) => {
       if (!context.currentUser) {

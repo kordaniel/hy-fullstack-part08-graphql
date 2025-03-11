@@ -1,39 +1,88 @@
+import { useState } from 'react';
 import { useQuery } from '@apollo/client';
-import { ALL_BOOKS } from '../graphql/queries';
+import { ALL_BOOKS, ALL_GENRES } from '../graphql/queries';
 
-const Books = (props) => {
-  const result = useQuery(ALL_BOOKS);
-
-  if (!props.show) {
-    return null
-  } else if (result.loading) {
-    return <div>Loading books...</div>;
-  }
-
-  const books = result.called && !result.error
-    ? result.data.allBooks
-    : [];
+const GenreSelection = ({ allGenres, showGenres, setShowGenres }) => {
+  const handleChange = (event) => {
+    if (event.target.checked) {
+      setShowGenres([...showGenres, event.target.id]);
+    } else {
+      setShowGenres(showGenres.filter(g => g !== event.target.id));
+    }
+  };
 
   return (
     <div>
-      <h2>books</h2>
+      <fieldset>
+        <legend>Select genres to show:</legend>
+        {allGenres.map(genre => (
+          <div key={genre}>
+            <input type="checkbox" id={genre} onChange={handleChange} />
+            <label htmlFor={genre}>{genre}</label>
+          </div>
+        ))}
+      </fieldset>
+    </div>
+  );
+};
 
+const ListBooks = ({ books, showGenres }) => {
+  return (
+    <div>
+      {showGenres.length > 0
+        ? <span>in genres: <strong>{showGenres.join(', ')}</strong>.</span>
+        : <span>in <strong>all</strong> genres.</span>
+      }
       <table>
         <tbody>
           <tr>
-            <th></th>
-            <th>author</th>
-            <th>published</th>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Published</th>
+            <th>Genres</th>
           </tr>
           {books.map((a) => (
             <tr key={a.id}>
               <td>{a.title}</td>
               <td>{a.author.name}</td>
               <td>{a.published}</td>
+              <td>{a.genres.join(', ')}</td>
             </tr>
           ))}
         </tbody>
       </table>
+    </div>
+  );
+};
+
+const Books = (props) => {
+  const books = useQuery(ALL_BOOKS);
+  const genres = useQuery(ALL_GENRES);
+  const [showGenres, setShowGenres] = useState([]);
+
+  if (!props.show) {
+    return null
+  }
+  if (books.loading || genres.loading) {
+    return <div>Loading books and genres...</div>;
+  }
+
+  const booksToRender = books.called && !books.error
+    ? showGenres.length === 0
+      ? books.data.allBooks
+      : books.data.allBooks.filter(book => showGenres.some(selectedGenre => book.genres.includes(selectedGenre)))
+    : [];
+  const allGenres = genres.called && !genres.error
+    ? genres.data.allGenres
+    : [];
+
+  return (
+    <div>
+      <h2>Books</h2>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <GenreSelection allGenres={allGenres} showGenres={showGenres} setShowGenres={setShowGenres} />
+        <ListBooks books={booksToRender} showGenres={showGenres} />
+      </div>
     </div>
   )
 }
