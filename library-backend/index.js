@@ -48,6 +48,11 @@ const typeDefs = `
     value: String!
   }
 
+  type UserFavorites {
+    favoriteGenre: String!
+    favorites: [Book!]!
+  }
+
   type Mutation {
     addBook(
       title: String!
@@ -76,6 +81,7 @@ const typeDefs = `
     allBooks(author: String, genre: String): [Book!]!
     allGenres: [String!]!
     me: User
+    myFavorites: UserFavorites!
   }
 `;
 
@@ -237,6 +243,20 @@ const resolvers = {
         });
       }
       return context.currentUser;
+    },
+    myFavorites: async (_root, _args, { currentUser }) => {
+      if (!currentUser) {
+        throw new GraphQLError('not authenticated', {
+          extensions: {
+            code: 'BAD_USER_INPUT'
+          }
+        });
+      }
+
+      return {
+        favoriteGenre: currentUser.favoriteGenre,
+        favorites: await Book.find({ genres: currentUser.favoriteGenre })
+      };
     },
   },
   Author: {

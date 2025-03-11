@@ -30,3 +30,20 @@ export const ALL_GENRES = gql`
     allGenres
   }
 `;
+
+export const MY_FAVORITES = gql`
+  query {
+    myFavorites {
+      favoriteGenre
+      favorites {
+        id
+        title
+        author {
+          name
+        }
+        published
+        genres
+      }
+    }
+  }
+`;
