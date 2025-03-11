@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@apollo/client';
-import { ALL_BOOKS, ALL_GENRES } from '../graphql/queries';
+import { ALL_BOOKS, ALL_BOOKS_WITH_GENRES, ALL_GENRES } from '../graphql/queries';
 
 const GenreSelection = ({ allGenres, showGenres, setShowGenres }) => {
   const handleChange = (event) => {
@@ -27,6 +27,17 @@ const GenreSelection = ({ allGenres, showGenres, setShowGenres }) => {
 };
 
 const ListBooks = ({ books, showGenres }) => {
+  const booksWithGenre = useQuery(ALL_BOOKS_WITH_GENRES, {
+    variables: { genres: showGenres }
+  });
+
+  const booksToShow = !booksWithGenre.loading &&
+                       booksWithGenre.called &&
+                      !booksWithGenre.error &&
+                       showGenres.length > 0
+    ? booksWithGenre.data.allBooksWithGenres
+    : books;
+
   return (
     <div>
       {showGenres.length > 0
@@ -41,7 +52,7 @@ const ListBooks = ({ books, showGenres }) => {
             <th>Published</th>
             <th>Genres</th>
           </tr>
-          {books.map((a) => (
+          {booksToShow.map((a) => (
             <tr key={a.id}>
               <td>{a.title}</td>
               <td>{a.author.name}</td>
@@ -60,6 +71,12 @@ const Books = (props) => {
   const genres = useQuery(ALL_GENRES);
   const [showGenres, setShowGenres] = useState([]);
 
+  useEffect(() => {
+    if (!props.show) {
+      setShowGenres([]);
+    }
+  }, [props.show]);
+
   if (!props.show) {
     return null
   }
@@ -67,10 +84,8 @@ const Books = (props) => {
     return <div>Loading books and genres...</div>;
   }
 
-  const booksToRender = books.called && !books.error
-    ? showGenres.length === 0
-      ? books.data.allBooks
-      : books.data.allBooks.filter(book => showGenres.some(selectedGenre => book.genres.includes(selectedGenre)))
+  const allBooks = books.called && !books.error
+    ? books.data.allBooks
     : [];
   const allGenres = genres.called && !genres.error
     ? genres.data.allGenres
@@ -81,7 +96,7 @@ const Books = (props) => {
       <h2>Books</h2>
       <div style={{ display: 'flex', gap: 10 }}>
         <GenreSelection allGenres={allGenres} showGenres={showGenres} setShowGenres={setShowGenres} />
-        <ListBooks books={booksToRender} showGenres={showGenres} />
+        <ListBooks books={allBooks} showGenres={showGenres} />
       </div>
     </div>
   )

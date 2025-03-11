@@ -79,6 +79,7 @@ const typeDefs = `
     authorCount: Int!
     allAuthors: [Author!]!
     allBooks(author: String, genre: String): [Book!]!
+    allBooksWithGenres(genres: [String!]!): [Book!]!
     allGenres: [String!]!
     me: User
     myFavorites: UserFavorites!
@@ -214,6 +215,9 @@ const resolvers = {
       }
 
       return Book.find(opts);
+    },
+    allBooksWithGenres: async (_root, args) => {
+      return Book.find({ genres: { $in: args.genres } });
     },
     allGenres: async () => {
       // NOTE: This returns the genres in ascending order so it contains more logic than

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation } from '@apollo/client'
-import { ALL_AUTHORS, ALL_BOOKS, ALL_GENRES, MY_FAVORITES } from '../graphql/queries';
+import { ALL_AUTHORS, ALL_BOOKS, ALL_BOOKS_WITH_GENRES, ALL_GENRES, MY_FAVORITES } from '../graphql/queries';
 import { CREATE_BOOK } from '../graphql/mutations';
 
 const NewBook = (props) => {
@@ -15,7 +15,8 @@ const NewBook = (props) => {
       { query: ALL_AUTHORS },
       { query: ALL_BOOKS },
       { query: ALL_GENRES },
-      { query: MY_FAVORITES }
+      { query: MY_FAVORITES },
+      { query: ALL_BOOKS_WITH_GENRES }
     ]
   });
 
