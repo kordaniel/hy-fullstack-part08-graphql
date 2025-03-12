@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation } from '@apollo/client'
 import { ALL_AUTHORS, ALL_BOOKS, ALL_GENRES, MY_FAVORITES } from '../graphql/queries';
 import { CREATE_BOOK } from '../graphql/mutations';
+import { updateAuthorCache, updateBookCache, updateFavoritesCache, updateGenreCache } from '../App';
 
 const NewBook = (props) => {
   const [title, setTitle] = useState('')
@@ -10,14 +11,21 @@ const NewBook = (props) => {
   const [genre, setGenre] = useState('')
   const [genres, setGenres] = useState([])
 
-  const [ createBook ] = useMutation(CREATE_BOOK, {
-    refetchQueries: [
-      { query: ALL_AUTHORS },
-      { query: ALL_BOOKS },
-      { query: ALL_GENRES },
-      { query: MY_FAVORITES },
-      //{ query: ALL_BOOKS_WITH_GENRES } // Parameterized queries not cached
-    ]
+  const [createBook] = useMutation(CREATE_BOOK, {
+    //refetchQueries: [
+    //  { query: ALL_AUTHORS },
+    //  { query: ALL_BOOKS },
+    //  { query: ALL_GENRES },
+    //  { query: MY_FAVORITES },
+    //  //{ query: ALL_BOOKS_WITH_GENRES } // Parameterized queries are not cached
+    //],
+    update: (cache, response) => {
+      const addedBook = response.data.addBook;
+      updateBookCache(cache, { query: ALL_BOOKS }, addedBook);
+      updateGenreCache(cache, { query: ALL_GENRES }, addedBook.genres);
+      updateAuthorCache(cache, { query: ALL_AUTHORS }, addedBook.author);
+      updateFavoritesCache(cache, { query: MY_FAVORITES }, addedBook);
+    }
   });
 
   if (!props.show) {

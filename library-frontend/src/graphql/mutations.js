@@ -16,7 +16,10 @@ export const CREATE_BOOK = gql`
       id
       title
       author {
+        id
         name
+        born
+        bookCount
       }
       published
       genres
