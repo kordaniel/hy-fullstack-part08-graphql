@@ -2,7 +2,9 @@ import { useQuery } from '@apollo/client';
 import { MY_FAVORITES } from '../graphql/queries';
 
 const Recommendations = (props) => {
-  const favorites = useQuery(MY_FAVORITES);
+  const favorites = useQuery(MY_FAVORITES, {
+    skip: props.skip
+  });
 
   if (!props.show) {
     return null;

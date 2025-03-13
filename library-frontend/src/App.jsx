@@ -79,6 +79,9 @@ const App = () => {
       if (token) {
         updateFavoritesCache(client.cache, { query: MY_FAVORITES }, addedBook);
       }
+    },
+    onError: (error) => {
+      console.error('error:', error);
     }
   });
 
@@ -89,10 +92,10 @@ const App = () => {
   }, [token]);
 
   const logout = () => {
-    setToken(null);
-    localStorage.clear();
-    //client.resetStore(); // Handled in useEffect
     setPage("authors");
+    localStorage.clear();
+    setToken(null);
+    //client.resetStore(); // Handled in useEffect
   }
 
   const errorStyle = {
@@ -132,7 +135,7 @@ const App = () => {
 
       <NewBook show={page === "add"} />
 
-      <Recommendations show={page === "recommendations"} />
+      <Recommendations show={page === "recommendations"} skip={token === null} />
 
       <LoginForm
         show={page === "login"}

@@ -130,7 +130,25 @@ const resolvers = {
   Query: {
     bookCount: async () => Book.collection.countDocuments(),
     authorCount: async () => Author.collection.countDocuments(),
-    allAuthors: async () => Author.find({}),
+    allAuthors: async () => {
+      // Another option would be to introduce a virtual field bookCount for
+      // mongoose model Author, which references Book (author) and counts the
+      // occurences. Then populate the virtual field before returning list of authors.
+
+      // Run aggregation query to avoid N+1 problem
+      const authors = await Author.aggregate([
+        { $lookup: { from: 'books', localField: '_id', foreignField: 'author', as: 'authorsBooks' } },
+        { $addFields: { bookCount: { $size: '$authorsBooks' } } },
+        { $project: { authorsBooks: 0 } }
+      ]);
+
+      return authors.map(authorObj => {
+        const authorObjToReturn = { ...authorObj, id: authorObj._id.toString() };
+        delete authorObjToReturn._id;
+        delete authorObjToReturn.__v;
+        return authorObjToReturn;
+      });
+    },
     allBooks: async (_root, args) => {
       let opts = {};
 
@@ -195,7 +213,21 @@ const resolvers = {
     },
   },
   Author: {
-    bookCount: async (root) => await Book.find({ author: root._id }).countDocuments(),
+    bookCount: async (root) => {
+      if (root.hasOwnProperty('bookCount')) {
+        // allAuthors resolver performs one aggregation query
+        //  => this field is set in root Author object
+        //  => n+1 query avoided
+        return root.bookCount;
+      }
+      // This is run when books/authors are added => 2 queries in total
+
+      //console.log('Running separate query for Author.bookCount, root:', root);
+      //console.log('bookCount:info:', info.fieldNodes.some(field => {
+      //  return field.name.value === 'bookCount';
+      //}));
+      return await Book.find({ author: root._id }).countDocuments();
+    },
   },
   Book: {
     author: async (root) => Author.findById(root.author),

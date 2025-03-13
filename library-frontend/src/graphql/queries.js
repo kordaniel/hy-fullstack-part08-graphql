@@ -1,6 +1,6 @@
 import { gql } from '@apollo/client';
 
-const AUTHOR_DETAILS = gql`
+export const AUTHOR_DETAILS = gql`
   fragment AuthorDetails on Author {
     name
     id
@@ -14,12 +14,12 @@ const BOOK_DETAILS = gql`
     id
     title
     author {
-      ...AuthorDetails
+      id
+      name
     }
     published
     genres
   }
-  ${AUTHOR_DETAILS}
 `;
 
 export const ALL_AUTHORS = gql`
@@ -62,10 +62,16 @@ export const ALL_GENRES = gql`
 export const BOOK_ADDED = gql`
   subscription {
     bookAdded {
-      ...BookDetails
+      id
+      title
+      author {
+       ...AuthorDetails
+      }
+      published
+      genres
     }
   }
-  ${BOOK_DETAILS}
+  ${AUTHOR_DETAILS}
 `;
 
 export const MY_FAVORITES = gql`
